@@ -92,4 +92,4 @@ If you find this work useful in your research, please consider citing our paper:
 
 ## License
 
-This project is open-source software licensed under the [GPLv3 License](https://www.google.com/search?q=LICENSE).
+This project is open-source software licensed under the [GPLv3 License](https://github.com/klab-aizu/fspc/blob/main/LICENSE).
