@@ -9,10 +9,9 @@ FSPC is a spike compression framework designed to merge frequently occurring spi
 
 ## Installation
 
-Clone the repository and install the required dependencies:
+Download the repository and install the required dependencies:
 
 ```bash
-git clone https://github.com/your-username/fspc.git
 cd fspc
 pip install -r requirements.txt
 
