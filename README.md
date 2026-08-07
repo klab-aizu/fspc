@@ -52,6 +52,7 @@ To run a default experiment with model training and spike compression evaluation
 1. Execute `main.py`:
 
 ```bash
+cd fspc
 python main.py
 
 ```
