@@ -9,7 +9,7 @@ FSPC is a spike compression framework designed to merge frequently occurring spi
 
 ## Installation
 
-Download the repository and install the required dependencies:
+Download/clone the repository and install the required dependencies:
 
 ```bash
 cd fspc
