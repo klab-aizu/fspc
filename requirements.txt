@@ -1,0 +1,15 @@
+# Core Frameworks
+torch
+torchvision
+
+# Data & Numerical Processing
+numpy
+pandas
+
+# Utilities 
+psutil
+matplotlib
+pami
+
+# Specialized Neuromorphic/SNN libraries
+snntorch
