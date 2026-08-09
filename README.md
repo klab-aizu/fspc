@@ -79,7 +79,7 @@ If you find this work useful in your research, please consider citing our paper:
 
 ```bibtex
 @inproceedings{Ganesh2025FSPC,
-  author    = {Satvik Ganesh and Hanyu Yuga and Zhishang Wang and Khanh N. Dang},
+  author    = {Ganesh, Satvik and Yuga, Hanyu and Wang, Zhishang and Dang, Khanh N.},
   title     = {FSPC: A Lossy Spike Compression Through Correlated-AER Merging in Spiking Neural Networks},
   booktitle = {2025 IEEE 18th International Symposium on Embedded Multicore/Many-core Systems-on-Chip (MCSoC)},
   year      = {2025},
