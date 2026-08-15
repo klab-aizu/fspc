@@ -10,6 +10,7 @@ pandas
 psutil
 matplotlib
 pami
+mlxtend
 
 # Specialized Neuromorphic/SNN libraries
 snntorch
