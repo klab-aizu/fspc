@@ -117,9 +117,9 @@ def mlextendFpmax(aerData, numFsp, minSup):
     # Transform transactions into a sparse one-hot encoded DataFrame
     transactionEncoder = TransactionEncoder()
 
-    transactionEncoderArray = transactionEncoder.fit_transform(transactions, sparse=True)
+    transactionEncoderArray = transactionEncoder.fit_transform(transactions)
 
-    dataFrame = pd.DataFrame.sparse.from_spmatrix(transactionEncoderArray.astype("float32"), columns=transactionEncoder.columns_)
+    dataFrame = pd.DataFrame(transactionEncoderArray, columns=transactionEncoder.columns_)
 
     print("Running mlxtend fpmax()...")
     startTime = time.time()
