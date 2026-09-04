@@ -70,7 +70,7 @@ class MLP_SNN_V2(nn.Module):
 
             # The input is the spike output from layer X (spkX)
             cur3 = self.fc3(spk2)
-            spk3, mem3 = self.lif2(cur3, mem2)
+            spk3, mem3 = self.lif2(cur3, mem3)
 
             # Record the final layer's output
             spk3_rec.append(spk3)
