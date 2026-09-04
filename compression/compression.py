@@ -105,21 +105,23 @@ def mlextendFpmax(aerData, numFsp, minSup):
 
     # Group neuron spikes by timestep and sample into transactions
     transactionDict = defaultdict(list)
-
     for timestep, sample, neuron in aerData:
         transactionDict[(timestep, sample)].append(neuron)
 
     # Convert grouped transactions into a list of transactions
     transactions = list(transactionDict.values())
-
     print(f"Total transactions: {len(transactions)}")
 
     # Transform transactions into a sparse one-hot encoded DataFrame
     transactionEncoder = TransactionEncoder()
-
     transactionEncoderArray = transactionEncoder.fit_transform(transactions)
-
-    dataFrame = pd.DataFrame(transactionEncoderArray, columns=transactionEncoder.columns_)
+    
+    # Explicit bool dtype prevents mlxtend internal re-casting
+    dataFrame = pd.DataFrame(
+        transactionEncoderArray, 
+        columns=transactionEncoder.columns_, 
+        dtype=bool
+    )
 
     print("Running mlxtend fpmax()...")
     startTime = time.time()
@@ -138,43 +140,44 @@ def mlextendFpmax(aerData, numFsp, minSup):
 
     # Calculate memory used during fpmax execution
     rssEx = mem_after - mem_before
-
     print("Analyzing patterns...")
 
     # Check if any frequent patterns were found
     if not frequentPatternsFpmax.empty:
         # Calculate the number of neurons in each pattern
-        frequentPatternsFpmax["length"] = (frequentPatternsFpmax["itemsets"].str.len())
-
+        frequentPatternsFpmax["length"] = frequentPatternsFpmax["itemsets"].str.len()
+        
         # Select the highest support pattern for each pattern size
-        top_patterns_df = (frequentPatternsFpmax.sort_values(["length", "support"], ascending=[False, False]).groupby("length").head(1))
+        top_patterns_df = (
+            frequentPatternsFpmax
+            .sort_values(["length", "support"], ascending=[False, False])
+            .groupby("length")
+            .head(1)
+        )
 
-        # Select the final number of frequent spike patterns
+        # Select the final number of frequent spike pattern
         final_selection = top_patterns_df.head(numFsp)
 
-        # Convert selected patterns into sets and store them
+        # Print the size of each selected pattern
         for fsp in final_selection["itemsets"]:
             fspList.append(set(map(int, fsp)))
-
+        
         print(f"Itemset: {fspList}")
 
-        # Print the size of each selected pattern
-        print(f"Moderate itemset size: "f"{[len(x) for x in fspList]}")
+        # Print support values for selected patterns
+        print(f"Moderate itemset size: {[len(x) for x in fspList]}")
 
         # Print support values for selected patterns
         print("Support (minsup):", [f"{s:.3f}" for s in final_selection["support"]])
-
     else:
         print("No patterns found.")
 
     # Calculate total runtime of fpmax analysis
     runtimeEx = time.time() - startTime
-
     print("Analysis complete.")
 
     # Display execution time and memory usage
     print(f"Elapsed time for mlextend fpmax algorithm: {runtimeEx:.3f} seconds")
-
     print(f"Memory used by fpmax call: {rssEx} bytes")
 
     # Return frequent spike patterns, runtime, and memory usage
