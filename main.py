@@ -66,7 +66,7 @@ def main():
     modelName = "snn_mlp_mnist"
 
     snnMlp = MLP_SNN_V1(config.MNIST.INPUT, config.MNIST.HIDDEN1, config.MNIST.OUTPUT, 
-                        config.MNIST.TIMESTEPS, config.MNIST.BETA)
+                        config.MNIST.TIMESTEPS, config.MNIST.BETA, config.CommonConfig.MINSUP_1)
 
     runPipeline(mnistTrainLoader, mnistTestLoader, config.MNIST.EPOCH, snnMlp, modelName, 
                 compression.pamiFpgrowth, "MNIST", "784-100-10 MLP SNN", fspList, pmtList, device)
