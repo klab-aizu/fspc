@@ -15,7 +15,7 @@ from compression import compression
 import config
 
 class MLP_SNN_V1(nn.Module):
-    def __init__(self, numInputs, numHidden1, numOutputs, numTimesteps, beta):
+    def __init__(self, numInputs, numHidden1, numOutputs, numTimesteps, beta, minSup):
         super().__init__()
 
         self.num_inputs = numInputs
@@ -23,6 +23,7 @@ class MLP_SNN_V1(nn.Module):
         self.num_outputs = numOutputs
         self.num_timesteps = numTimesteps
         self.beta = beta
+        self.minSup = minSup 
     
         # Network Layers
         self.fc1 = nn.Linear(self.num_inputs, self.num_hidden1)      
@@ -52,7 +53,7 @@ class MLP_SNN_V1(nn.Module):
         batchMetrics = None
 
         if compressionMode:
-            compressedAer, shape, PATTERNLIST, SYMBOLIST, metrics = compression.compress(hiddenSpikes, patternMiningFunc, numFsp=numFsp, pmt=pmt, num_hidden=self.num_hidden1, minSup=config.CommonConfig.MINSUP_1)
+            compressedAer, shape, PATTERNLIST, SYMBOLIST, metrics = compression.compress(hiddenSpikes, patternMiningFunc, numFsp=numFsp, pmt=pmt, num_hidden=self.num_hidden1, minSup=self.minSup)
             hiddenSpikes = compression.decompress(self, compressedAer, PATTERNLIST, SYMBOLIST, shape)
             batchMetrics = metrics
         
