@@ -11,7 +11,6 @@ Functions:
 
 import torch
 from torch import nn
-import snntorch.functional as SF
 from pathlib import Path
 
 def trainNetwork(net, trainLoader, numEpoch, device):
