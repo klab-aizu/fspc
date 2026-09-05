@@ -11,7 +11,6 @@ Functions:
 
 import torch
 from torch import nn
-from torch.amp import autocast, GradScaler
 import snntorch.functional as SF
 from pathlib import Path
 
@@ -33,71 +32,63 @@ def trainNetwork(net, trainLoader, numEpoch, device):
     numTimesteps = net.num_timesteps
 
     # Optimizer
-    optimizer = torch.optim.AdamW(net.parameters(), lr=5e-4, weight_decay=1e-4)
+    optimizer = torch.optim.Adam(net.parameters(), lr=5e-4, betas=(0.9, 0.999))
 
     # Loss function
     # Applied to membrane potentials at each timestep
     lossFn = nn.CrossEntropyLoss()
 
-    # Mixed precision
-    scaler = GradScaler()
+    # Loss history
+    lossHist = []
+
+    counter = 0
 
     totalBatches = len(trainLoader)
 
-    net.train()
-
+    # Outer training loop
     for epoch in range(numEpoch):
-
         runningLoss = 0.0
         runningCorrect = 0
         runningTotal = 0
 
+        # Minibatch training loop
         for iteration, (data, target) in enumerate(trainLoader):
-
             # Move data
             data = data.to(device, non_blocking=True).flatten(1)
-
             target = target.to(device, non_blocking=True)
 
-            optimizer.zero_grad(set_to_none=True)
-
             # Forward pass
-            with autocast(device_type="cuda"):
+            net.train()
+            spkRec, memRec, _ = net(data)
 
-                spkRec, memRec, _ = net(data)
+            # Initialize loss and sum over time
+            lossVal = torch.zeros((1), dtype=memRec.dtype, device=device)
 
-                # memRec shape:
-                # [numTimesteps, batch, classes]
+            for step in range(numTimesteps):
+                lossVal += lossFn(memRec[step], target)
 
-                # Apply CE loss over all timesteps
-                loss = lossFn(memRec.reshape(-1, memRec.size(-1)), target.repeat(numTimesteps))
+            # Gradient calculation and weight update
+            optimizer.zero_grad()
+            lossVal.backward()
+            optimizer.step()
 
-            # Backpropagation
-            scaler.scale(loss).backward()
-
-            # Gradient clipping
-            scaler.unscale_(optimizer)
-
-            torch.nn.utils.clip_grad_norm_(net.parameters(), max_norm=1.0)
-
-            scaler.step(optimizer)
-            scaler.update()
+            # Store loss history for plotting
+            lossHist.append(lossVal.item())
 
             # Accuracy calculation
             with torch.no_grad():
-
                 # Spike accumulation over time
                 pred = spkRec.sum(0).argmax(1)
                 correct = (pred == target).sum().item()
+
                 batchAcc = (correct / target.size(0)) * 100
 
-                runningLoss += loss.item()
+                runningLoss += lossVal.item()
                 runningCorrect += correct
                 runningTotal += target.size(0)
 
                 runningAvgLoss = (runningLoss / (iteration + 1))
                 runningAcc = (runningCorrect / runningTotal) * 100
-
 
             # Reset neurons if using persistent states
             if hasattr(net, "reset_states"):
@@ -106,17 +97,18 @@ def trainNetwork(net, trainLoader, numEpoch, device):
             # Logging
             currentBatch = iteration + 1
 
-            if currentBatch % 100 == 0 or currentBatch == totalBatches:
+            if counter % 100 == 0:
 
                 print(
                     f"Epoch [{epoch+1}/{numEpoch}] | "
                     f"Batch [{currentBatch}/{totalBatches}] | "
-                    f"Loss: {loss.item():.4f} | "
+                    f"Loss: {lossVal.item():.4f} | "
                     f"Batch Acc: {batchAcc:.2f}% | "
                     f"Avg Loss: {runningAvgLoss:.4f} | "
                     f"Avg Acc: {runningAcc:.2f}% "
-                    f"({runningCorrect}/{runningTotal})"
-                )
+                    f"({runningCorrect}/{runningTotal})")
+
+            counter += 1
 
         # Epoch summary
         epochLoss = runningLoss / totalBatches
