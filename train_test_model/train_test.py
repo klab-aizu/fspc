@@ -22,6 +22,7 @@ def trainNetwork(net, trainLoader, numEpoch, device, seed=42):
         trainLoader: Training DataLoader.
         numEpoch: Number of training epochs.
         device: Torch device.
+        seed: Random seed for reproducibility (default: 42).
 
     Returns:
         None. The network is trained in-place.
