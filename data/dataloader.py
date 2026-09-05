@@ -26,12 +26,12 @@ def mnistDataLoader(batchSize, dataPath):
         trainLoader, testLoader: PyTorch DataLoaders for training and testing.
     """
 
-    transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))])
+    transform = transforms.Compose([transforms.Resize((28,28)), transforms.Grayscale(), transforms.ToTensor(), transforms.Normalize((0,), (1,))])
 
     trainSet = torchvision.datasets.MNIST(root=dataPath, train=True, download=True, transform=transform)
     testSet = torchvision.datasets.MNIST(root=dataPath, train=False, download=True, transform=transform)
 
-    # testSet = Subset(testSet, range(3000))
+    testSet = Subset(testSet, range(3000))
 
     trainLoader = torch.utils.data.DataLoader(trainSet, batch_size=batchSize, shuffle=True, drop_last=True)
     testLoader = torch.utils.data.DataLoader(testSet, batch_size=batchSize, shuffle=True, drop_last=False)
@@ -50,12 +50,12 @@ def fashionMnistDataLoader(batchSize, dataPath):
         trainLoader, testLoader: PyTorch DataLoaders for training and testing.
     """
 
-    transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.2860,), (0.3530,))])
+    transform = transforms.Compose([transforms.Resize((28,28)), transforms.Grayscale(), transforms.ToTensor(), transforms.Normalize((0,), (1,))])
 
     trainSet = torchvision.datasets.FashionMNIST(root=dataPath, train=True, download=True, transform=transform)
     testSet = torchvision.datasets.FashionMNIST(root=dataPath, train=False, download=True, transform=transform)
 
-    # testSet = Subset(testSet, range(800))
+    testSet = Subset(testSet, range(3000))
 
     trainLoader = torch.utils.data.DataLoader(trainSet, batch_size=batchSize, shuffle=True, drop_last=True)
     testLoader = torch.utils.data.DataLoader(testSet, batch_size=batchSize, shuffle=True, drop_last=False)
