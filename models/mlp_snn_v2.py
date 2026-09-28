@@ -66,7 +66,7 @@ class MLP_SNN_V2(nn.Module):
         for step in range(self.num_timesteps):
             # Process through layer 2
             cur2 = self.fc2(hiddenSpikes[step])
-            spk2, mem2 = self.lif2(cur2, mem2)
+            spk2, mem2 = self.lif3(cur2, mem2)
 
             # The input is the spike output from layer X (spkX)
             cur3 = self.fc3(spk2)
