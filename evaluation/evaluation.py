@@ -218,6 +218,7 @@ def runExperiment(model, testLoader, device, fspList, pmtList, compressionMode, 
     metrics_folder.mkdir(exist_ok=True)
 
     save_path = metrics_folder / filename
+    save_path.parent.mkdir(parents=True, exist_ok=True)
     dfResults.to_csv(save_path, index=False)
 
     print(f"Done! CSV saved as {save_path}")
@@ -234,6 +235,9 @@ def visualizeResults(filename, datasetName, networkType):
     if not file_path.exists():
         print(f"Error: {file_path} does not exist.")
         return
+
+    output_dir = file_path.parent
+    exp_prefix = file_path.stem
 
     df = pd.DataFrame(pd.read_csv(file_path))
 
@@ -322,7 +326,7 @@ def visualizeResults(filename, datasetName, networkType):
     ax3.legend(h3 + h4, l3 + l4, loc="lower center", bbox_to_anchor=(0.5, 1.12), ncol=3, frameon=True)
 
     plt.tight_layout()
-    plots_save_path = metrics_folder / f"{datasetName}_accuracy_compression_analysis.png"
+    plots_save_path = output_dir / f"{exp_prefix}_accuracy_compression_analysis.png"
     plt.savefig(plots_save_path, dpi=300, bbox_inches="tight")
     plt.close()
 
@@ -348,7 +352,7 @@ def visualizeResults(filename, datasetName, networkType):
     ax_rt.legend(h_rt + h_mem, lab_rt + lab_mem, loc="upper center", bbox_to_anchor=(0.5, 1.12), ncol=2, frameon=True)
 
     plt.tight_layout()
-    supp_save_path = metrics_folder / f"{datasetName}_runtime_memory_analysis.png"
+    supp_save_path = output_dir / f"{exp_prefix}_runtime_memory_analysis.png"
     plt.savefig(supp_save_path, dpi=300, bbox_inches="tight")
     plt.close()
 
@@ -357,7 +361,7 @@ def visualizeResults(filename, datasetName, networkType):
     ram_gb = round(psutil.virtual_memory().total / (1024 ** 3), 2)
     gpu_info = torch.cuda.get_device_name(0) if torch.cuda.is_available() else "No GPU detected"
 
-    report_path = metrics_folder / f"{datasetName}_summary_report.txt"
+    report_path = output_dir / f"{exp_prefix}_summary_report.txt"
     with open(report_path, "w") as f:
         f.write("=====================================================\n")
         f.write(f" EXPERIMENT ANALYSIS REPORT: {datasetName}\n")
