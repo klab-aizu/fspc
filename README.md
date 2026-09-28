@@ -2,7 +2,7 @@
 
 Official implementation of the paper **"[FSPC: A Lossy Spike Compression Through Correlated-AER Merging in Spiking Neural Networks](https://ieeexplore.ieee.org/document/11310938)"** (IEEE MCSoC 2025).
 
-FSPC is an in-situ lossy spike compression framework designed to compress correlated spatial spike events in hidden layers into compact symbolic identifiers. Models are implemented with [snnTorch](https://snntorch.readthedocs.io/), with frequent pattern mining powered by [PAMI](https://github.com/UdayLab/PAMI) and [mlxtend](https://github.com/rasbt/mlxtend).
+FSPC is a lossy spike compression framework designed to compress correlated spatial spike events in hidden layers into compact symbolic identifiers. Models are implemented with [snnTorch](https://snntorch.readthedocs.io/), with frequent pattern mining powered by [PAMI](https://github.com/UdayLab/PAMI) and [mlxtend](https://github.com/rasbt/mlxtend).
 
 ---
 
@@ -12,7 +12,7 @@ Clone the repository and install dependencies:
 
 ```bash
 git clone https://github.com/klab-aizu/FSPC.git
-cd FSPC
+cd fspc
 pip install -r requirements.txt
 ```
 
