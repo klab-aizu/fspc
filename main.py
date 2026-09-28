@@ -3,13 +3,13 @@ main.py
 
 Central execution script for running SNN compression experiments via terminal.
 Usage:
-    python main.py <model>_<version>_<dataset>
+    python main.py <model>_<version>_<mining-func>_<dataset>
 
 Examples:
-    python main.py mlp_v1_mnist
-    python main.py mlp_v2_mnist
-    python main.py mlp_v1_fmnist
-    python main.py mlp_v2_fashionmnist
+    python main.py mlp_v1_fpmax_mnist
+    python main.py mlp_v2_fpgrowth_mnist
+    python main.py mlp_v1_maxfpgrowth_fmnist
+    python main.py mlp_v2_fpmax_fashionmnist
 """
 
 import sys
@@ -28,17 +28,21 @@ from compression import compression
 
 def parse_experiment_string(exp_str: str):
     """
-    Parse experiment string in format <model>_<version>_<dataset>.
-    Returns parsed identifiers and validated configuration objects.
+    Parse experiment string in format: <model>_<version>_<mining-func>_<dataset>
     """
     parts = exp_str.strip().lower().split("_")
-    if len(parts) != 3:
+    if len(parts) < 4:
         raise ValueError(
             f"Invalid target format: '{exp_str}'.\n"
-            f"Expected syntax: <model>_<version>_<dataset> (e.g., mlp_v1_mnist, mlp_v2_fmnist)"
+            f"Expected syntax: <model>_<version>_<mining-func>_<dataset>\n"
+            f"Examples: mlp_v1_fpmax_mnist, mlp_v2_fpgrowth_fmnist"
         )
 
-    model_type, version, dataset_name = parts
+    model_type = parts[0]
+    version = parts[1]
+    dataset_name = parts[-1]
+    # Join intermediate tokens to support miner names like pami_fpgrowth or fpmax
+    miner_str = "_".join(parts[2:-1])
 
     # 1. Validate Model Type
     if model_type != "mlp":
@@ -48,7 +52,27 @@ def parse_experiment_string(exp_str: str):
     if version not in ("v1", "v2"):
         raise ValueError(f"Unsupported model version '{version}'. Supported: 'v1', 'v2'")
 
-    # 3. Validate Dataset & Select Config + DataLoader
+    # 3. Validate Mining Function
+    miner_lookup = {
+        "fpmax": compression.mlextendFpmax,
+        "mlextendfpmax": compression.mlextendFpmax,
+        "mlextend_fpmax": compression.mlextendFpmax,
+        "fpgrowth": compression.pamiFpgrowth,
+        "pamifpgrowth": compression.pamiFpgrowth,
+        "pami_fpgrowth": compression.pamiFpgrowth,
+        "maxfpgrowth": compression.pamiMaxFpgrowth,
+        "pamimaxfpgrowth": compression.pamiMaxFpgrowth,
+        "pami_maxfpgrowth": compression.pamiMaxFpgrowth,
+    }
+
+    if miner_str not in miner_lookup:
+        raise ValueError(
+            f"Unsupported mining function '{miner_str}'.\n"
+            f"Supported miners: 'fpmax', 'fpgrowth', 'maxfpgrowth'"
+        )
+    minerFunc = miner_lookup[miner_str]
+
+    # 4. Validate Dataset & Select Config + DataLoader
     if dataset_name in ("mnist",):
         cfg = config.MNIST
         dataset_display = "MNIST"
@@ -60,7 +84,7 @@ def parse_experiment_string(exp_str: str):
     else:
         raise ValueError(f"Unsupported dataset '{dataset_name}'. Supported: 'mnist', 'fmnist', 'fashionmnist'")
 
-    # 4. Instantiate Selected Model
+    # 5. Instantiate Selected Model
     if version == "v1":
         model = MLP_SNN_V1(
             numInputs=cfg.INPUT,
@@ -83,6 +107,11 @@ def parse_experiment_string(exp_str: str):
         )
         networkType = f"{cfg.INPUT}-{cfg.HIDDEN1}-{cfg.HIDDEN2}-{cfg.OUTPUT} MLP SNN V2"
 
+    # Model checkpoint is independent of the mining algorithm (avoids redundant training)
+    checkpoint_name = f"{model_type}_{version}_{dataset_name}"
+    # Full experiment folder name
+    experiment_tag = f"{model_type}_{version}_{miner_str}_{dataset_name}"
+
     return {
         "model": model,
         "trainLoader": trainLoader,
@@ -90,39 +119,47 @@ def parse_experiment_string(exp_str: str):
         "epoch": cfg.EPOCH,
         "datasetName": dataset_display,
         "networkType": networkType,
-        "modelName": f"{model_type}_{version}_{dataset_name}"
+        "checkpointName": checkpoint_name,
+        "experimentTag": experiment_tag,
+        "minerFunc": minerFunc
     }
 
 
-def runPipeline(trainLoader, testLoader, epoch, model, modelName, minerFunc, datasetName, networkType, fspList, pmtList, device):
+def runPipeline(trainLoader, testLoader, epoch, model, checkpointName, experimentTag, minerFunc, datasetName, networkType, fspList, pmtList, device):
     """
-    Train or load a model, run compression experiments, and generate visualizations.
+    Train or load a model, run experiments, and save all data inside metrics/<experimentTag>/.
     """
     model = model.to(device)
 
-    # Ensure directories exist
+    # Directories
     deployed_dir = Path("deployed_models")
     deployed_dir.mkdir(parents=True, exist_ok=True)
-    metrics_dir = Path("metrics")
-    metrics_dir.mkdir(parents=True, exist_ok=True)
 
-    modelPath = deployed_dir / f"{modelName}.pt"
+    # Target folder: metrics/<model>_<version>_<mining-func>_<dataset>/
+    experiment_metrics_dir = Path("metrics") / experimentTag
+    experiment_metrics_dir.mkdir(parents=True, exist_ok=True)
 
-    # Train model if checkpoint does not exist, otherwise load saved weights
+    modelPath = deployed_dir / f"{checkpointName}.pt"
+
+    # Train model if checkpoint does not exist
     if not modelPath.exists():
         print(f"\nModel checkpoint {modelPath} not found. Starting training for {epoch} epoch(s)...")
         trainNetwork(model, trainLoader, epoch, device)
-        testNetwork(model, testLoader, device, modelName)
+        testNetwork(model, testLoader, device, checkpointName)
     else:
         print(f"\nFound existing checkpoint at {modelPath}.")
 
-    print(f"Loading weights into {modelName}...")
+    print(f"Loading weights into {checkpointName}...")
     model.load_state_dict(torch.load(modelPath, map_location=device))
 
-    outputFile = f"{modelName}.csv"
+    # Output file relative path inside metrics/
+    relative_csv_path = f"{experimentTag}/{experimentTag}.csv"
 
-    # Execute compression experiments
-    print(f"\nStarting compression experiments for {modelName}...")
+    print(f"\n[Starting Evaluation]")
+    print(f"Destination Folder: {experiment_metrics_dir}/")
+    print(f"Mining Algorithm:   {minerFunc.__name__}")
+
+    # Execute compression experiments (saves CSV into metrics/<experimentTag>/)
     runExperiment(
         model=model, 
         testLoader=testLoader, 
@@ -131,29 +168,22 @@ def runPipeline(trainLoader, testLoader, epoch, model, modelName, minerFunc, dat
         pmtList=pmtList, 
         compressionMode=True, 
         minerFunc=minerFunc, 
-        filename=outputFile
+        filename=relative_csv_path
     )
 
-    # Generate analytical graphs and text report
-    print(f"\nGenerating visualization plots and summary reports...")
-    visualizeResults(outputFile, datasetName, networkType)
+    # Generate analytical graphs and text report inside metrics/<experimentTag>/
+    print(f"\nGenerating plots and summary report in {experiment_metrics_dir}/...")
+    visualizeResults(relative_csv_path, datasetName, networkType)
 
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Run SNN compression experiments using syntax: <model>_<version>_<dataset>"
+        description="Run SNN compression experiments using syntax: <model>_<version>_<mining-func>_<dataset>"
     )
     parser.add_argument(
         "target",
         type=str,
-        help="Experiment target in format <model>_<version>_<dataset> (e.g., mlp_v1_mnist, mlp_v2_fmnist)"
-    )
-    parser.add_argument(
-        "--miner",
-        type=str,
-        default="pami_fpgrowth",
-        choices=["pami_fpgrowth", "mlextend_fpmax", "pami_max_fpgrowth"],
-        help="Pattern mining algorithm to use for FSPC (default: pami_fpgrowth)"
+        help="Experiment target in format <model>_<version>_<mining-func>_<dataset> (e.g., mlp_v1_fpmax_mnist)"
     )
 
     args = parser.parse_args()
@@ -162,29 +192,22 @@ def main():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
 
-    # Map miner CLI string to compression functions
-    miner_map = {
-        "pami_fpgrowth": compression.pamiFpgrowth,
-        "mlextend_fpmax": compression.mlextendFpmax,
-        "pami_max_fpgrowth": compression.pamiMaxFpgrowth,
-    }
-    selectedMiner = miner_map[args.miner]
-
-    # Parse and build pipeline setup
+    # Parse CLI string
     exp = parse_experiment_string(args.target)
 
     # Hyperparameter grids
     fspList = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
     pmtList = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
 
-    # Run complete workflow
+    # Execute workflow
     runPipeline(
         trainLoader=exp["trainLoader"],
         testLoader=exp["testLoader"],
         epoch=exp["epoch"],
         model=exp["model"],
-        modelName=exp["modelName"],
-        minerFunc=selectedMiner,
+        checkpointName=exp["checkpointName"],
+        experimentTag=exp["experimentTag"],
+        minerFunc=exp["minerFunc"],
         datasetName=exp["datasetName"],
         networkType=exp["networkType"],
         fspList=fspList,
