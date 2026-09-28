@@ -11,7 +11,7 @@ FSPC is a lossy spike compression framework designed to compress correlated spat
 Clone the repository and install dependencies:
 
 ```bash
-git clone https://github.com/klab-aizu/FSPC.git
+git clone https://github.com/klab-aizu/fspc.git
 cd fspc
 pip install -r requirements.txt
 ```
