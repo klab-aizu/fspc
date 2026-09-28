@@ -90,7 +90,7 @@ python main.py mlp_v2_fpmax_fashionmnist
    * If the checkpoint is **not found**, the network is trained automatically and saved.
    * If the checkpoint **exists**, training is skipped and weights are loaded immediately.
 
-   *(Checkpoints are independent of the mining algorithm—training runs only once per model-dataset pair).*
+   *(Checkpoints are independent of the mining algorithm. Training runs only once per model-dataset pair).*
 
 2. **Compression Grid Search**:
    Inference is evaluated across predefined parameter sweeps:
